@@ -1,7 +1,5 @@
 # DeferredFutures
 
-[![Build Status](https://travis-ci.org/iamed2/DeferredFutures.jl.svg?branch=master)](https://travis-ci.org/iamed2/DeferredFutures.jl)
-
-[![Coverage Status](https://coveralls.io/repos/iamed2/DeferredFutures.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/iamed2/DeferredFutures.jl?branch=master)
-
-[![codecov.io](http://codecov.io/github/iamed2/DeferredFutures.jl/coverage.svg?branch=master)](http://codecov.io/github/iamed2/DeferredFutures.jl?branch=master)
+[![Build Status](https://travis-ci.org/invenia/DeferredFutures.jl.svg?branch=master)](https://travis-ci.org/invenia/DeferredFutures.jl)
+[![Build status](https://ci.appveyor.com/api/projects/status/5sp5i4ewkfgw4cum/branch/master?svg=true)](https://ci.appveyor.com/project/iamed2/deferredfutures-jl/branch/master)
+[![codecov](https://codecov.io/gh/invenia/DeferredFutures.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/invenia/DeferredFutures.jl)
