@@ -2,25 +2,32 @@ module DeferredFutures
 
 export DeferredFuture
 
-immutable DeferredFuture <: Base.AbstractRemoteRef
+type DeferredFuture <: Base.AbstractRemoteRef
     outer::Future
 end
 
-Base.:(==)(df1::DeferredFuture, df2::DeferredFuture) = df1.outer == df2.outer
+function Base.:(==)(df1::DeferredFuture, df2::DeferredFuture)
+    df1.outer == df2.outer
+end
 
-DeferredFuture(args...) = DeferredFuture(Future(args...))
+DeferredFuture() = DeferredFuture(Future())
 DeferredFuture(pid::Integer) = DeferredFuture(Future(pid))
 
 function Base.put!(df::DeferredFuture, val)
-    inner = Future()
-    put!(inner, val)
-    put!(df.outer, inner)
-
+    rc = RemoteChannel()
+    put!(rc, val)
+    put!(df.outer, rc)
     return df
 end
 
-Base.isready(df::DeferredFuture) = isready(df.outer) && isready(fetch(df.outer))
-Base.fetch(df::DeferredFuture) = fetch(fetch(df.outer))
+function Base.isready(df::DeferredFuture)
+    isready(df.outer) && isready(fetch(df.outer))
+end
+
+function Base.fetch(df::DeferredFuture)
+    fetch(fetch(df.outer))
+end
+
 function Base.wait(df::DeferredFuture)
     wait(df.outer)
     wait(fetch(df.outer))

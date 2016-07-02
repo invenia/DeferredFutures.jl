@@ -14,7 +14,7 @@ using Base.Test
         fut = remotecall_wait(bottom, df) do dfr
             put!(dfr, val)
         end
-        @test fetch(fut) === df
+        @test fetch(fut) == df
         @test isready(df)
         @test fetch(df) == val
         @test wait(df) == df
