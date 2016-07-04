@@ -59,3 +59,43 @@ end
         rmprocs(bottom)
     end
 end
+
+@testset "Transfer" begin
+    rand_size = 800000000  # sizeof(rand(10000, 10000))
+    gc()
+    main_size = Base.summarysize(Main)
+
+    top = myid()
+    left, right = addprocs(2)
+    @everywhere using DeferredFutures
+
+    try
+        df = DeferredFuture(top)
+
+        left_remote_size = remotecall_fetch(left, df) do dfr
+            gc()
+            main_size = Base.summarysize(Main)
+            put!(dfr, rand(10000, 10000))
+            main_size
+        end
+
+        right_remote_size = remotecall_fetch(right, df) do dfr
+            gc()
+            main_size = Base.summarysize(Main)
+            global data = fetch(dfr)
+            main_size
+        end
+
+        gc()
+        @test Base.summarysize(Main) < main_size + rand_size
+
+        right_remote_size_new = remotecall_fetch(right) do
+            gc()
+            Base.summarysize(Main)
+        end
+
+        @test right_remote_size_new >= right_remote_size + rand_size
+    finally
+        rmprocs([left, right])
+    end
+end
