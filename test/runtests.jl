@@ -1,6 +1,14 @@
 using DeferredFutures
 using Base.Test
 
+
+@testset "Comparison" begin
+    f = Future()
+
+    @test DeferredFuture(f) == DeferredFuture(f)
+    @test hash(DeferredFuture(f)) == hash(DeferredFuture(f))
+end
+
 @testset "Distributed" begin
     top = myid()
     bottom = addprocs(1)[1]

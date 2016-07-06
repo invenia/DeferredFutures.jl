@@ -2,12 +2,10 @@ module DeferredFutures
 
 export DeferredFuture
 
-type DeferredFuture <: Base.AbstractRemoteRef
-    outer::Future
-end
+using AutoHashEquals
 
-function Base.:(==)(df1::DeferredFuture, df2::DeferredFuture)
-    df1.outer == df2.outer
+@auto_hash_equals immutable DeferredFuture <: Base.AbstractRemoteRef
+    outer::Future
 end
 
 DeferredFuture() = DeferredFuture(Future())
