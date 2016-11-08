@@ -14,20 +14,15 @@ DeferredFuture(pid::Integer=myid()) = DeferredFuture(Future(pid))
 
 @auto_hash_equals immutable DeferredChannel <: DeferredRemoteRef
     outer::Future
-    func::Function      # A function the generates the RemoteChannel
+    func::Function  # Channel generating function used for creating the `RemoteChannel`
 end
 
 function DeferredChannel(f::Function, pid::Integer=myid())
-    DeferredChannel(Future(pid), ()->RemoteChannel(f, pid))
+    DeferredChannel(Future(pid), f)
 end
 
 function DeferredChannel(pid::Integer=myid(), num::Integer=32; content::DataType=Any)
-    DeferredChannel(
-        Future(pid),
-        ()->RemoteChannel(
-            ()->Channel{content}(num)
-        )
-    )
+    DeferredChannel(Future(pid), ()->Channel{content}(num))
 end
 
 
@@ -41,13 +36,13 @@ end
 
 function Base.put!(ref::DeferredChannel, val)
     # On the first call to put! create the `RemoteChannel`
-    # and `put!`` it in the `Future`
+    # and `put!` it in the `Future`
     if !isready(ref.outer)
-        inner = ref.func()
+        inner = RemoteChannel(ref.func)
         put!(ref.outer, inner)
     end
 
-    # Feature the `RemoteChannel` and `put!`
+    # `fetch` the `RemoteChannel` and `put!`
     # the value in there
     put!(fetch(ref.outer), val)
 
@@ -73,15 +68,20 @@ Base.close(ref::DeferredChannel) = close(fetch(ref.outer))
 Base.take!(ref::DeferredChannel) = take!(fetch(ref.outer))
 
 macro defer(ex::Expr)
-    @assert ex.head == :call
-    @assert isa(ex.args[1], Symbol)
+    if ex.head != :call
+        throw(AssertionError("Expected expression to be a function call, but got $(ex)."))
+    end
+
+    if !isa(ex.args[1], Symbol)
+        throw(AssertertionError("First argument to :call is not a Symbol."))
+    end
 
     if ex.args[1] == :Future
         return Expr(:call, :DeferredFuture, ex.args[2:end]...)
     elseif ex.args[1] == :RemoteChannel
         return Expr(:call, :DeferredChannel, ex.args[2:end]...)
     else
-        return parse("throw(AssertionError(\"Expected RemoteChannel or Future and got $(ex.args[1])\"))")
+        throw(AssertionError("Expected RemoteChannel or Future and got $(ex.args[1])."))
     end
 end
 

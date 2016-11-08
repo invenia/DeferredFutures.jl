@@ -147,8 +147,12 @@ end
 end
 
 @testset "@defer" begin
-    channel = @defer RemoteChannel(()->Channel(5))
-    other_channel = @defer RemoteChannel()
+    channel = eval(macroexpand(quote
+        @defer RemoteChannel(()->Channel(5))
+    end))
+    other_channel = eval(macroexpand(quote
+        @defer RemoteChannel()
+    end))
 
     put!(channel, 1)
     put!(channel, 2)
@@ -157,12 +161,17 @@ end
     @test take!(channel) == 1
     @test fetch(channel) == 2
 
-    fut = @defer Future()
-    other_future = @defer Future()
+    fut = eval(macroexpand(quote
+        @defer Future()
+    end))
+    other_future = eval(macroexpand(quote
+        @defer Future()
+    end))
 
     try
-        @defer Channel()
-        throw(ErrorException("@defer should fail when given `Channel()`"))
+        bad_channel = eval(macroexpand(quote
+            @defer Channel()
+        end))
     catch exc
         @test isa(exc, AssertionError)
     end
