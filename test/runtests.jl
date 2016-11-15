@@ -49,7 +49,7 @@ end
 
     try
         val = "hello"
-        channel = DeferredChannel(top)
+        channel = DeferredChannel(top, 32)
 
         @test !isready(channel)
 
@@ -147,12 +147,10 @@ end
 end
 
 @testset "@defer" begin
-    channel = eval(macroexpand(quote
-        @defer RemoteChannel(()->Channel(5))
-    end))
-    other_channel = eval(macroexpand(quote
-        @defer RemoteChannel()
-    end))
+    ex = macroexpand(:(@defer RemoteChannel(()->Channel(5))))
+    ex = macroexpand(:(@defer RemoteChannel()))
+
+    channel = @defer RemoteChannel(()->Channel(32))
 
     put!(channel, 1)
     put!(channel, 2)
@@ -161,20 +159,14 @@ end
     @test take!(channel) == 1
     @test fetch(channel) == 2
 
-    fut = eval(macroexpand(quote
-        @defer Future()
-    end))
-    other_future = eval(macroexpand(quote
-        @defer Future()
-    end))
+    fut = macroexpand(:(@defer Future()))
+    other_future = macroexpand(:(@defer Future()))
 
-    try
-        bad_channel = eval(macroexpand(quote
-            @defer Channel()
-        end))
-    catch exc
-        @test isa(exc, AssertionError)
-    end
+    ex = macroexpand(:(@defer type Foo end))
+    isa(ex.args[1], AssertionError)
+
+    ex = macroexpand(:(@defer Channel()))
+    isa(ex.args[1], AssertionError)
 
     close(channel)
 end

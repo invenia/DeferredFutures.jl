@@ -21,10 +21,9 @@ function DeferredChannel(f::Function, pid::Integer=myid())
     DeferredChannel(Future(pid), f)
 end
 
-function DeferredChannel(pid::Integer=myid(), num::Integer=32; content::DataType=Any)
+function DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=Any)
     DeferredChannel(Future(pid), ()->Channel{content}(num))
 end
-
 
 function Base.put!(ref::DeferredFuture, val)
     inner = RemoteChannel()
@@ -70,10 +69,6 @@ Base.take!(ref::DeferredChannel) = take!(fetch(ref.outer))
 macro defer(ex::Expr)
     if ex.head != :call
         throw(AssertionError("Expected expression to be a function call, but got $(ex)."))
-    end
-
-    if !isa(ex.args[1], Symbol)
-        throw(AssertertionError("First argument to :call is not a Symbol."))
     end
 
     if ex.args[1] == :Future
