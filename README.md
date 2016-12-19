@@ -31,7 +31,7 @@ DeferredFutures.DeferredChannel(Future(4,1,6,Nullable{Any}()),DeferredFutures.#2
 julia> DeferredChannel(4, 128; content=Int)
 DeferredFutures.DeferredChannel(Future(4,1,2,Nullable{Any}()),DeferredFutures.#2)
 ```
-Note that `DeferredChannel()` will create a `RemoteChannel` with `RemoteChannel(()->Channel{Any}(32), myid())` by default.
+Note that `DeferredChannel()` will create a `RemoteChannel` with `RemoteChannel(()->Channel{Any}(1), myid())` by default.
 
 Furthermore, `@defer` can be used when creating a `Future` or `RemoteChannel` to create their deferred counterparts.
 ```julia
