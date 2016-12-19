@@ -2,14 +2,20 @@ using DeferredFutures
 using Base.Test
 
 
-@testset "Comparison" begin
-    f = Future()
-
-    @test DeferredFuture(f) == DeferredFuture(f)
-    @test hash(DeferredFuture(f)) == hash(DeferredFuture(f))
+@testset "DeferredFuture Comparison" begin
+    fut = Future()
+    @test DeferredFuture(fut) == DeferredFuture(fut)
+    @test hash(DeferredFuture(fut)) == hash(DeferredFuture(fut))
 end
 
-@testset "Distributed" begin
+@testset "DeferredChannel Comparison" begin
+    fut = Future()
+    func = () -> RemoteChannel()
+    @test DeferredChannel(fut, func) == DeferredChannel(fut, func)
+    @test hash(DeferredChannel(fut, func)) == hash(DeferredChannel(fut, func))
+end
+
+@testset "Distributed DeferredFuture" begin
     top = myid()
     bottom = addprocs(1)[1]
     @everywhere using DeferredFutures
@@ -17,6 +23,7 @@ end
     try
         val = "hello"
         df = DeferredFuture(top)
+
         @test !isready(df)
 
         fut = remotecall_wait(bottom, df) do dfr
@@ -34,6 +41,37 @@ end
         rmprocs(bottom)
     end
 end
+
+@testset "Distributed DeferredChannel" begin
+    top = myid()
+    bottom = addprocs(1)[1]
+    @everywhere using DeferredFutures
+
+    try
+        val = "hello"
+        channel = DeferredChannel(top, 32)
+
+        @test !isready(channel)
+
+        fut = remotecall_wait(bottom, channel) do dfr
+            put!(dfr, val)
+        end
+        @test fetch(fut) == channel
+        @test isready(channel)
+        @test fetch(channel) == val
+        @test wait(channel) == channel
+
+        put!(channel, "world")
+        @test take!(channel) == val
+        @test fetch(channel) == "world"
+
+        @test channel.outer.where == top
+        @test fetch(channel.outer).where == bottom
+    finally
+        rmprocs(bottom)
+    end
+end
+
 
 @testset "Allocation" begin
     rand_size = 800000000  # sizeof(rand(10000, 10000))
@@ -106,4 +144,29 @@ end
     finally
         rmprocs([left, right])
     end
+end
+
+@testset "@defer" begin
+    ex = macroexpand(:(@defer RemoteChannel(()->Channel(5))))
+    ex = macroexpand(:(@defer RemoteChannel()))
+
+    channel = @defer RemoteChannel(()->Channel(32))
+
+    put!(channel, 1)
+    put!(channel, 2)
+
+    @test fetch(channel) == 1
+    @test take!(channel) == 1
+    @test fetch(channel) == 2
+
+    fut = macroexpand(:(@defer Future()))
+    other_future = macroexpand(:(@defer Future()))
+
+    ex = macroexpand(:(@defer type Foo end))
+    isa(ex.args[1], AssertionError)
+
+    ex = macroexpand(:(@defer Channel()))
+    isa(ex.args[1], AssertionError)
+
+    close(channel)
 end
