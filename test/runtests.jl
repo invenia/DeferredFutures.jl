@@ -3,16 +3,16 @@ using Base.Test
 
 
 @testset "DeferredFuture Comparison" begin
-    fut = Future()
-    @test DeferredFuture(fut) == DeferredFuture(fut)
-    @test hash(DeferredFuture(fut)) == hash(DeferredFuture(fut))
+    rc = RemoteChannel()
+    @test DeferredFuture(rc) == DeferredFuture(rc)
+    @test hash(DeferredFuture(rc)) == hash(DeferredFuture(rc))
 end
 
 @testset "DeferredChannel Comparison" begin
-    fut = Future()
+    rc = RemoteChannel()
     func = () -> RemoteChannel()
-    @test DeferredChannel(fut, func) == DeferredChannel(fut, func)
-    @test hash(DeferredChannel(fut, func)) == hash(DeferredChannel(fut, func))
+    @test DeferredChannel(rc, func) == DeferredChannel(rc, func)
+    @test hash(DeferredChannel(rc, func)) == hash(DeferredChannel(rc, func))
 end
 
 @testset "Distributed DeferredFuture" begin

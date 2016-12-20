@@ -1,36 +1,48 @@
 module DeferredFutures
 
-export @defer, DeferredChannel, DeferredFuture
+export @defer, DeferredChannel, DeferredFuture, reset!
 
 using AutoHashEquals
 
 abstract DeferredRemoteRef <: Base.AbstractRemoteRef
 
 @auto_hash_equals immutable DeferredFuture <: DeferredRemoteRef
-    outer::Future
+    outer::RemoteChannel
 end
 
-DeferredFuture(pid::Integer=myid()) = DeferredFuture(Future(pid))
+DeferredFuture(pid::Integer=myid()) = DeferredFuture(RemoteChannel(pid))
 
 @auto_hash_equals immutable DeferredChannel <: DeferredRemoteRef
-    outer::Future
+    outer::RemoteChannel
     func::Function  # Channel generating function used for creating the `RemoteChannel`
 end
 
 function DeferredChannel(f::Function, pid::Integer=myid())
-    DeferredChannel(Future(pid), f)
+    DeferredChannel(RemoteChannel(pid), f)
 end
 
 function DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=Any)
-    DeferredChannel(Future(pid), ()->Channel{content}(num))
+    DeferredChannel(RemoteChannel(pid), ()->Channel{content}(num))
+end
+
+function reset!(ref::DeferredRemoteRef)
+    if isready(ref.outer)
+        take!(ref.outer)
+    end
+
+    return ref
 end
 
 function Base.put!(ref::DeferredFuture, val)
-    inner = RemoteChannel()
-    put!(ref.outer, inner)
-    put!(fetch(ref.outer), val)
+    if !isready(ref.outer)
+        inner = RemoteChannel()
+        put!(ref.outer, inner)
+        put!(fetch(ref.outer), val)
 
-    return ref
+        return ref
+    else
+        throw(ErrorException("DeferredFuture can only be set once."))
+    end
 end
 
 function Base.put!(ref::DeferredChannel, val)
