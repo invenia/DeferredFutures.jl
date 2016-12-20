@@ -14,35 +14,35 @@ This is useful when there is a lightweight controller process which handles sche
 Use a `DeferredFuture` as you would a `Future`.
 ```julia
 julia> DeferredFuture()
-DeferredFutures.DeferredFuture(Future(1,1,3,Nullable{Any}()))
+DeferredFutures.DeferredFuture(RemoteChannel{Channel{Any}}(1,1,1))
 
 julia> DeferredFuture(3)
-DeferredFutures.DeferredFuture(Future(3,1,4,Nullable{Any}()))
+DeferredFutures.DeferredFuture(RemoteChannel{Channel{Any}}(3,1,2))
 ```
 
 You can also use a `DeferredChannel` as you would a `RemoteChannel`.
 ```julia
 julia> DeferredChannel(()->Channel{Int}(10), 4)
-DeferredFutures.DeferredChannel(Future(4,1,5,Nullable{Any}()),#3)
+DeferredFutures.DeferredChannel(RemoteChannel{Channel{Any}}(4,1,3),#1)
 
 julia> DeferredChannel(4)
-DeferredFutures.DeferredChannel(Future(4,1,6,Nullable{Any}()),DeferredFutures.#2)
+DeferredFutures.DeferredChannel(RemoteChannel{Channel{Any}}(4,1,4),DeferredFutures.#2)
 
 julia> DeferredChannel(4, 128; content=Int)
-DeferredFutures.DeferredChannel(Future(4,1,2,Nullable{Any}()),DeferredFutures.#2)
+DeferredFutures.DeferredChannel(RemoteChannel{Channel{Any}}(4,1,5),DeferredFutures.#2)
 ```
 Note that `DeferredChannel()` will create a `RemoteChannel` with `RemoteChannel(()->Channel{Any}(1), myid())` by default.
 
 Furthermore, `@defer` can be used when creating a `Future` or `RemoteChannel` to create their deferred counterparts.
 ```julia
 julia> @defer Future()
-DeferredFutures.DeferredFuture(Future(1,1,2,Nullable{Any}()))
+DeferredFutures.DeferredFuture(RemoteChannel{Channel{Any}}(1,1,6))
 
 julia> @defer RemoteChannel(()->Channel{Int}(10))
-DeferredFutures.DeferredChannel(Future(1,1,1,Nullable{Any}()),#1)
+DeferredFutures.DeferredChannel(RemoteChannel{Channel{Any}}(1,1,7),#3)
 ```
 
-Note that `DeferredFuture(n)` does not control where the data lives, only where the `Future` which refers to the data lives.
+Note that `DeferredFuture(n)` does not control where the data lives, only where the `RemoteChannel` which refers to the data lives.
 
 ## License
 
