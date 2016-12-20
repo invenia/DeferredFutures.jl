@@ -37,6 +37,11 @@ end
 
         @test df.outer.where == top
         @test fetch(df.outer).where == bottom
+
+        reset!(df)
+        @test !isready(df)
+        put!(df, "world")
+        @test fetch(df) == "world"
     finally
         rmprocs(bottom)
     end
@@ -67,6 +72,11 @@ end
 
         @test channel.outer.where == top
         @test fetch(channel.outer).where == bottom
+
+        reset!(channel)
+        @test !isready(channel)
+        put!(channel, "world")
+        @test fetch(channel) == "world"
     finally
         rmprocs(bottom)
     end
