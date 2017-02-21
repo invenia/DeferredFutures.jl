@@ -35,6 +35,9 @@ end
         @test wait(df) == df
         @test_throws ErrorException put!(df, val)
 
+        @test df[] == val
+        @test df[5] == 'o'
+
         @test df.outer.where == top
         @test fetch(df.outer).where == bottom
 
@@ -65,6 +68,9 @@ end
         @test isready(channel)
         @test fetch(channel) == val
         @test wait(channel) == channel
+
+        @test channel[] == val
+        @test channel[5] == 'o'
 
         put!(channel, "world")
         @test take!(channel) == val

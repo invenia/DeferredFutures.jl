@@ -74,7 +74,8 @@ function Base.wait(ref::DeferredRemoteRef)
     return ref
 end
 
-Base.getindex(ref::DeferredRemoteRef) = getindex(fetch(ref.outer))
+# mimics the Future/RemoteChannel indexing behaviour in Base
+Base.getindex(ref::DeferredRemoteRef, args...) = getindex(fetch(ref.outer), args...)
 Base.close(ref::DeferredChannel) = close(fetch(ref.outer))
 Base.take!(ref::DeferredChannel) = take!(fetch(ref.outer))
 
