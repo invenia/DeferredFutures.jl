@@ -15,6 +15,94 @@ end
     @test hash(DeferredChannel(rc, func)) == hash(DeferredChannel(rc, func))
 end
 
+@testset "Finalizing" begin
+    df = DeferredFuture()
+    finalize(df)
+    @test_throws Exception isready(df)
+    @test_throws Exception fetch(df)
+    @test_throws Exception df[]
+    @test_throws Exception put!(df, 1)
+    @test_throws Exception take!(df)
+    @test_throws Exception wait(df)
+    finalize(df)
+
+    dc = DeferredChannel()
+    finalize(dc)
+    @test_throws Exception isready(dc)
+    @test_throws Exception fetch(dc)
+    @test_throws Exception close(dc)
+    @test_throws Exception dc[]
+    @test_throws Exception put!(dc, 1)
+    @test_throws Exception take!(dc)
+    @test_throws Exception wait(dc)
+    finalize(dc)
+
+    dc = DeferredChannel()
+    close(dc)
+    @test !isready(dc)
+    @test_throws Exception fetch(dc)
+    @test_throws Exception dc[]
+    @test_throws Exception put!(dc, 1)
+    @test_throws Exception take!(dc)
+    @test_throws Exception wait(dc)
+    close(dc)
+    finalize(dc)
+    @test_throws Exception isready(dc)
+    @test_throws Exception fetch(dc)
+    @test_throws Exception close(dc)
+    @test_throws Exception dc[]
+    @test_throws Exception put!(dc, 1)
+    @test_throws Exception take!(dc)
+    @test_throws Exception wait(dc)
+
+    df = DeferredFuture()
+    put!(df, 1)
+    @test df[] == 1
+    finalize(df)
+    @test_throws Exception isready(df)
+    @test_throws Exception fetch(df)
+    @test_throws Exception df[]
+    @test_throws Exception put!(df, 1)
+    @test_throws Exception take!(df)
+    @test_throws Exception wait(df)
+
+    dc = DeferredChannel()
+    put!(dc, 1)
+    @test dc[] == 1
+    finalize(dc)
+    @test_throws Exception isready(dc)
+    @test_throws Exception fetch(dc)
+    @test_throws Exception close(dc)
+    @test_throws Exception dc[]
+    @test_throws Exception put!(dc, 1)
+    @test_throws Exception take!(dc)
+    @test_throws Exception wait(dc)
+
+    dc = DeferredChannel()
+    put!(dc, 1)
+    @test dc[] == 1
+    close(dc)
+    @test isready(dc)
+    @test fetch(dc) == 1
+    @test dc[] == 1
+    @test_throws Exception put!(dc, 1)
+    @test take!(dc) == 1
+    @test !isready(dc)
+    @test_throws Exception fetch(dc)
+    @test_throws Exception dc[]
+    @test_throws Exception put!(dc, 1)
+    @test_throws Exception take!(dc)
+    @test_throws Exception wait(dc)
+    finalize(dc)
+    @test_throws Exception isready(dc)
+    @test_throws Exception fetch(dc)
+    @test_throws Exception close(dc)
+    @test_throws Exception dc[]
+    @test_throws Exception put!(dc, 1)
+    @test_throws Exception take!(dc)
+    @test_throws Exception wait(dc)
+end
+
 @testset "Distributed DeferredFuture" begin
     top = myid()
     bottom = addprocs(1)[1]
@@ -35,6 +123,9 @@ end
         @test wait(df) == df
         @test_throws ErrorException put!(df, val)
 
+        @test df[] == val
+        @test df[5] == 'o'
+
         @test df.outer.where == top
         @test fetch(df.outer).where == bottom
 
@@ -42,6 +133,14 @@ end
         @test !isready(df)
         put!(df, "world")
         @test fetch(df) == "world"
+        finalize(df)
+        @test_throws Exception isready(df)
+        @test_throws Exception fetch(df)
+        @test_throws Exception df[]
+        @test_throws Exception put!(df, 1)
+        @test_throws Exception take!(df)
+        @test_throws Exception wait(df)
+        finalize(df)
     finally
         rmprocs(bottom)
     end
@@ -66,6 +165,9 @@ end
         @test fetch(channel) == val
         @test wait(channel) == channel
 
+        @test channel[] == val
+        @test channel[5] == 'o'
+
         put!(channel, "world")
         @test take!(channel) == val
         @test fetch(channel) == "world"
@@ -77,6 +179,15 @@ end
         @test !isready(channel)
         put!(channel, "world")
         @test fetch(channel) == "world"
+        finalize(channel)
+        @test_throws Exception isready(channel)
+        @test_throws Exception fetch(channel)
+        @test_throws Exception close(channel)
+        @test_throws Exception channel[]
+        @test_throws Exception put!(channel, 1)
+        @test_throws Exception take!(channel)
+        @test_throws Exception wait(channel)
+        finalize(channel)
     finally
         rmprocs(bottom)
     end

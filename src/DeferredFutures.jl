@@ -4,30 +4,67 @@ export @defer, DeferredChannel, DeferredFuture, reset!
 
 using AutoHashEquals
 
-abstract DeferredRemoteRef <: Base.AbstractRemoteRef
+if VERSION >= v"0.6.0-dev.2830"
+    import Base.Distributed: AbstractRemoteRef
+elseif VERSION >= v"0.6.0-dev.2603"
+    import Base.Parallel: AbstractRemoteRef
+else
+    import Base: AbstractRemoteRef
+end
 
-@auto_hash_equals immutable DeferredFuture <: DeferredRemoteRef
+abstract DeferredRemoteRef <: AbstractRemoteRef
+
+@auto_hash_equals type DeferredFuture <: DeferredRemoteRef
     outer::RemoteChannel
 end
 
-DeferredFuture(pid::Integer=myid()) = DeferredFuture(RemoteChannel(pid))
+function DeferredFuture(pid::Integer=myid())
+    ref = DeferredFuture(RemoteChannel(pid))
+    finalizer(ref, finalize_ref)
+    return ref
+end
 
-@auto_hash_equals immutable DeferredChannel <: DeferredRemoteRef
+@auto_hash_equals type DeferredChannel <: DeferredRemoteRef
     outer::RemoteChannel
     func::Function  # Channel generating function used for creating the `RemoteChannel`
 end
 
 function DeferredChannel(f::Function, pid::Integer=myid())
-    DeferredChannel(RemoteChannel(pid), f)
+    ref = DeferredChannel(RemoteChannel(pid), f)
+    finalizer(ref, finalize_ref)
+    return ref
 end
 
 function DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=Any)
-    DeferredChannel(RemoteChannel(pid), ()->Channel{content}(num))
+    ref = DeferredChannel(RemoteChannel(pid), ()->Channel{content}(num))
+    finalizer(ref, finalize_ref)
+    return ref
+end
+
+function finalize_ref(ref::DeferredRemoteRef)
+    # finalizes as recommended in Julia docs:
+    # http://docs.julialang.org/en/latest/manual/parallel-computing.html#Remote-References-and-Distributed-Garbage-Collection-1
+
+    # check for ref.outer.where == 0 as the contained RemoteChannel may have already been
+    # finalized
+    if ref.outer.where > 0 && isready(ref.outer)
+        inner = take!(ref.outer)
+
+        finalize(inner)
+    end
+
+    finalize(ref.outer)
+
+    return nothing
 end
 
 function reset!(ref::DeferredRemoteRef)
     if isready(ref.outer)
-        take!(ref.outer)
+        inner = take!(ref.outer)
+
+        # as recommended in Julia docs:
+        # http://docs.julialang.org/en/latest/manual/parallel-computing.html#Remote-References-and-Distributed-Garbage-Collection-1
+        finalize(inner)
     end
 
     return ref
@@ -74,8 +111,23 @@ function Base.wait(ref::DeferredRemoteRef)
     return ref
 end
 
-Base.getindex(ref::DeferredRemoteRef) = getindex(fetch(ref.outer))
-Base.close(ref::DeferredChannel) = close(fetch(ref.outer))
+# mimics the Future/RemoteChannel indexing behaviour in Base
+Base.getindex(ref::DeferredRemoteRef, args...) = getindex(fetch(ref.outer), args...)
+
+function Base.close(ref::DeferredChannel)
+    if isready(ref.outer)
+        inner = fetch(ref.outer)
+        close(inner)
+    else
+        rc = RemoteChannel()
+        close(rc)
+
+        put!(ref.outer, rc)
+    end
+
+    return nothing
+end
+
 Base.take!(ref::DeferredChannel) = take!(fetch(ref.outer))
 
 macro defer(ex::Expr)
