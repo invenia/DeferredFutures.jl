@@ -4,7 +4,15 @@ export @defer, DeferredChannel, DeferredFuture, reset!
 
 using AutoHashEquals
 
-abstract DeferredRemoteRef <: Base.AbstractRemoteRef
+if VERSION >= v"0.6.0-dev.2830"
+    import Base.Distributed: AbstractRemoteRef
+elseif VERSION >= v"0.6.0-dev.2603"
+    import Base.Parallel: AbstractRemoteRef
+else
+    import Base: AbstractRemoteRef
+end
+
+abstract DeferredRemoteRef <: AbstractRemoteRef
 
 @auto_hash_equals type DeferredFuture <: DeferredRemoteRef
     outer::RemoteChannel
