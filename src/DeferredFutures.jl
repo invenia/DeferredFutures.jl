@@ -18,6 +18,14 @@ abstract DeferredRemoteRef <: AbstractRemoteRef
     outer::RemoteChannel
 end
 
+"""
+    DeferredFuture(pid::Integer=myid()) -> DeferredFuture
+
+Create a `DeferredFuture` on process `pid`. The default `pid` is the current process.
+
+Note that the data in the `DeferredFuture` will still be located wherever it was `put!`
+from. The `pid` argument controlls where the outermost reference to that data is located.
+"""
 function DeferredFuture(pid::Integer=myid())
     ref = DeferredFuture(RemoteChannel(pid))
     finalizer(ref, finalize_ref)
@@ -29,12 +37,31 @@ end
     func::Function  # Channel generating function used for creating the `RemoteChannel`
 end
 
+"""
+    DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=Any) -> DeferredChannel
+
+Create a `DeferredChannel` with a reference to a remote channel of a specific size and type.
+f() is a function that when executed on `pid` must return an implementation of an
+`AbstractChannel`.
+
+The default `pid` is the current process.
+"""
 function DeferredChannel(f::Function, pid::Integer=myid())
     ref = DeferredChannel(RemoteChannel(pid), f)
     finalizer(ref, finalize_ref)
     return ref
 end
 
+"""
+    DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=Any) -> DeferredChannel
+
+Create a `DeferredChannel`. The default `pid` is the current process. When initialized, the
+`DeferredChannel` will reference a `Channel{content}(num)` on process `pid`.
+
+Note that the data in the `DeferredChannel` will still be located wherever the first piece
+of data was `put!` from. The `pid` argument controls where the outermost reference to that
+data is located.
+"""
 function DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=Any)
     ref = DeferredChannel(RemoteChannel(pid), ()->Channel{content}(num))
     finalizer(ref, finalize_ref)
@@ -58,6 +85,13 @@ function finalize_ref(ref::DeferredRemoteRef)
     return nothing
 end
 
+"""
+    reset!{T<:DeferredRemoteRef}(ref::T) -> T
+
+Removes any data from the `DeferredRemoteRef` and allows it to be reinitialized with data.
+
+Returns the input `DeferredRemoteRef`.
+"""
 function reset!(ref::DeferredRemoteRef)
     if isready(ref.outer)
         inner = take!(ref.outer)
@@ -130,6 +164,13 @@ end
 
 Base.take!(ref::DeferredChannel) = take!(fetch(ref.outer))
 
+"""
+    @defer Future(...)
+    @defer RemoteChannel(...)
+
+`@defer` transforms a `Future` or `RemoteChannel` construction into a 'DeferredFuture' or
+'DeferredChannel' construction.
+"""
 macro defer(ex::Expr)
     if ex.head != :call
         throw(AssertionError("Expected expression to be a function call, but got $(ex)."))
