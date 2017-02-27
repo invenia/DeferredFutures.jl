@@ -209,11 +209,14 @@ end
         remote_size = remotecall_fetch(bottom, df) do dfr
             gc()
             main_size = Base.summarysize(Main)
+
+            # the DeferredFuture is initialized and the data is stored on bottom
             put!(dfr, rand(10000, 10000))
             main_size
         end
 
         gc()
+        # tests that the data has not been transfered to top
         @test Base.summarysize(Main) < main_size + rand_size
 
         remote_size_new = remotecall_fetch(bottom) do
@@ -221,6 +224,7 @@ end
             Base.summarysize(Main)
         end
 
+        # tests that the data still exists on bottom
         @test remote_size_new >= remote_size + rand_size
     finally
         rmprocs(bottom)
