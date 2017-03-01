@@ -72,6 +72,16 @@ function DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=
     return ref
 end
 
+"""
+    finalize_ref(ref::DeferredRemoteRef)
+
+This finalizer is attached to both `DeferredFuture` and `DeferredChannel` on construction
+and finalizes the inner and outer `RemoteChannel`s.
+
+For more information on finalizing remote references, see the Julia manual[^1].
+
+[^1]: [Remote References and Distributed Garbage Collection](http://docs.julialang.org/en/latest/manual/parallel-computing.html#Remote-References-and-Distributed-Garbage-Collection-1)
+"""
 function finalize_ref(ref::DeferredRemoteRef)
     # finalizes as recommended in Julia docs:
     # http://docs.julialang.org/en/latest/manual/parallel-computing.html#Remote-References-and-Distributed-Garbage-Collection-1
