@@ -1,6 +1,6 @@
 module DeferredFutures
 
-export @defer, DeferredChannel, DeferredFuture, reset!
+export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
 
 using AutoHashEquals
 
@@ -12,6 +12,10 @@ else
     import Base: AbstractRemoteRef
 end
 
+"""
+`DeferredRemoteRef` is the common supertype of `DeferredFuture` and `DeferredChannel` and is
+the counterpart of `$AbstractRemoteRef`.
+"""
 abstract DeferredRemoteRef <: AbstractRemoteRef
 
 @auto_hash_equals type DeferredFuture <: DeferredRemoteRef
@@ -104,6 +108,13 @@ function reset!(ref::DeferredRemoteRef)
     return ref
 end
 
+"""
+    put!(ref::DeferredFuture, v) -> DeferredFuture
+
+Store a value to a `DeferredFuture`. `DeferredFuture`s, like `Future`s, are write-once
+remote references. A `put!` on an already set `DeferredFuture` throws an `Exception`.
+Returns its first argument.
+"""
 function Base.put!(ref::DeferredFuture, val)
     if !isready(ref.outer)
         inner = RemoteChannel()
@@ -116,29 +127,51 @@ function Base.put!(ref::DeferredFuture, val)
     end
 end
 
+"""
+    put!(rr::DeferredChannel, val) -> DeferredChannel
+
+Store a value to the `DeferredChannel`. If the channel is full, blocks until space is
+available. Returns its first argument.
+"""
 function Base.put!(ref::DeferredChannel, val)
-    # On the first call to put! create the `RemoteChannel`
-    # and `put!` it in the `Future`
+    # On the first call to `put!` create the `RemoteChannel` and `put!` it in the `Future`
     if !isready(ref.outer)
         inner = RemoteChannel(ref.func)
         put!(ref.outer, inner)
     end
 
-    # `fetch` the `RemoteChannel` and `put!`
-    # the value in there
+    # `fetch` the `RemoteChannel` and `put!` the value in there
     put!(fetch(ref.outer), val)
 
     return ref
 end
 
+"""
+    isready(ref::DeferredRemoteRef) -> Bool
+
+Determine whether a `DeferredRemoteRef` has a value stored to it. Note that this function
+can cause race conditions, since by the time you receive its result it may no longer be
+true.
+"""
 function Base.isready(ref::DeferredRemoteRef)
     isready(ref.outer) && isready(fetch(ref.outer))
 end
 
+"""
+    fetch(ref::DeferredRemoteRef) -> Any
+
+Wait for and get the value of a remote reference.
+"""
 function Base.fetch(ref::DeferredRemoteRef)
     fetch(fetch(ref.outer))
 end
 
+"""
+    wait(ref::DeferredRemoteRef) -> DeferredRemoteRef
+
+Block the current task until a value becomes available on the `DeferredRemoteRef`. Returns
+its first argument.
+"""
 function Base.wait(ref::DeferredRemoteRef)
     wait(ref.outer)
     wait(fetch(ref.outer))
@@ -148,6 +181,13 @@ end
 # mimics the Future/RemoteChannel indexing behaviour in Base
 Base.getindex(ref::DeferredRemoteRef, args...) = getindex(fetch(ref.outer), args...)
 
+"""
+    close(ref::DeferredChannel)
+
+Closes a `DeferredChannel`. An exception is thrown by:
+* `put!` on a closed `DeferredChannel`
+* `take!` and `fetch` on an empty, closed `DeferredChannel`
+"""
 function Base.close(ref::DeferredChannel)
     if isready(ref.outer)
         inner = fetch(ref.outer)
@@ -162,7 +202,14 @@ function Base.close(ref::DeferredChannel)
     return nothing
 end
 
-Base.take!(ref::DeferredChannel) = take!(fetch(ref.outer))
+"""
+    take!(ref::DeferredChannel, args...)
+
+Fetch value(s) from a `DeferredChannel`, removing the value(s) in the processs. Note that
+`take!` passes through `args...` to the innermost `AbstractChannel` and the default
+`Channel` accepts no `args...`.
+"""
+Base.take!(ref::DeferredChannel, args...) = take!(fetch(ref.outer), args...)
 
 """
     @defer Future(...)
