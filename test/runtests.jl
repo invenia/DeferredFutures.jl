@@ -295,4 +295,14 @@ using Base.Test
 
         close(channel)
     end
+
+    @testset "Show" begin
+        rc = RemoteChannel()
+        rc_params = "($(rc.where),$(rc.whence),$(rc.id))"
+
+        @test sprint(show, DeferredFuture(rc)) == "DeferredFuture at $rc_params"
+
+        dc = DeferredChannel(rc, print)
+        @test sprint(show, dc) == "DeferredChannel(print) at $rc_params"
+    end
 end
