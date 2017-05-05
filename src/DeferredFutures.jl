@@ -36,6 +36,17 @@ function DeferredFuture(pid::Integer=myid())
     return ref
 end
 
+"""
+    show(io::IO, ref::DeferredFuture)
+
+Print a simplified string representation of the `DeferredFuture` with its RemoteChannel
+parameters.
+"""
+function Base.show(io::IO, ref::DeferredFuture)
+    rc = ref.outer
+    print(io, "$(typeof(ref).name.name) at ($(rc.where),$(rc.whence),$(rc.id))")
+end
+
 @auto_hash_equals type DeferredChannel <: DeferredRemoteRef
     outer::RemoteChannel
     func::Function  # Channel generating function used for creating the `RemoteChannel`
@@ -70,6 +81,20 @@ function DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=
     ref = DeferredChannel(RemoteChannel(pid), ()->Channel{content}(num))
     finalizer(ref, finalize_ref)
     return ref
+end
+
+"""
+    show(io::IO, ref::DeferredChannel)
+
+Print a simplified string representation of the `DeferredChannel` with its RemoteChannel
+parameters and its function.
+"""
+function Base.show(io::IO, ref::DeferredChannel)
+    rc = ref.outer
+    print(
+        io,
+        "$(typeof(ref).name.name)($(ref.func)) at ($(rc.where),$(rc.whence),$(rc.id))"
+    )
 end
 
 """
