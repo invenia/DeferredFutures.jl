@@ -305,4 +305,44 @@ using Base.Test
         dc = DeferredChannel(rc, print)
         @test sprint(show, dc) == "DeferredChannel(print) at $rc_params"
     end
+
+    @testset "Serialization" begin
+        @testset "Serialization on same process" begin
+            df = DeferredFuture(myid())
+            io = IOBuffer()
+            serialize(io, df)
+            seekstart(io)
+            deserialized_df = deserialize(io)
+            close(io)
+            @test deserialized_df == df
+        end
+
+        @testset "Serialization on a cluster" begin
+            df = DeferredFuture(myid())
+
+            io = IOBuffer()
+            serialize(io, df)
+            df_string = takebuf_string(io)
+            close(io)
+
+            bottom = addprocs(1)[1]
+            @everywhere using DeferredFutures
+
+            try
+                @fetchfrom bottom begin
+                    io = IOBuffer()
+                    write(io, df_string)
+                    seekstart(io)
+                    bottom_df = deserialize(io)
+                    put!(bottom_df, 37)
+                end
+
+                @test isready(df) == true
+                @test fetch(df) == 37
+
+            finally
+                rmprocs(bottom)
+            end
+        end
+    end
 end
