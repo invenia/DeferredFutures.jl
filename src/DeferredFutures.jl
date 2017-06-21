@@ -108,6 +108,17 @@ function Base.show(io::IO, ref::DeferredChannel)
 end
 
 """
+    serialize(s::AbstractSerializer, ref::DeferredChannel)
+
+Serialize a DeferredChannel such that it can de deserialized by `deserialize` in a cluster.
+"""
+function Base.serialize(s::AbstractSerializer, ref::DeferredChannel)
+    Base.Serializer.serialize_type(s, DeferredChannel)
+    Base.Serializer.serialize_any(s, ref.outer)
+    Base.Serializer.serialize(s, ref.func)
+end
+
+"""
     finalize_ref(ref::DeferredRemoteRef)
 
 This finalizer is attached to both `DeferredFuture` and `DeferredChannel` on construction
