@@ -1,5 +1,6 @@
 using DeferredFutures
 using Base.Test
+using Compat
 
 @testset "DeferredRemoteRefs" begin
     @testset "DeferredFuture Comparison" begin
@@ -323,20 +324,21 @@ using Base.Test
             df1 = DeferredFuture(myid())
             df2 = DeferredFuture(myid())
 
-            io = IOBuffer()
+            @compat io = IOBuffer()
             serialize(io, df1)
-            df1_string = takebuf_string(io)
+            df1_string = take!(io)
             close(io)
 
             put!(df2, 28)
 
-            io = IOBuffer()
+            @compat io = IOBuffer()
             serialize(io, df2)
-            df2_string = takebuf_string(io)
+            df2_string = take!(io)
             close(io)
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
+            @everywhere using Compat
 
             df3_string = ""
             try
@@ -362,9 +364,9 @@ using Base.Test
                     df3 = DeferredFuture(myid())
                     put!(df3, 14)
 
-                    io = IOBuffer()
+                    @compat io = IOBuffer()
                     serialize(io, df3)
-                    df3_string = takebuf_string(io)
+                    df3_string = take!(io)
                     close(io)
 
                     return df3_string
@@ -407,20 +409,21 @@ using Base.Test
             dc1 = DeferredChannel()
             dc2 = DeferredChannel()
 
-            io = IOBuffer()
+            @compat io = IOBuffer()
             serialize(io, dc1)
-            dc1_string = takebuf_string(io)
+            dc1_string = take!(io)
             close(io)
 
             put!(dc2, 28)
 
-            io = IOBuffer()
+            @compat io = IOBuffer()
             serialize(io, dc2)
-            dc2_string = takebuf_string(io)
+            dc2_string = take!(io)
             close(io)
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
+            @everywhere using Compat
 
             dc3_string = ""
             try
@@ -446,9 +449,9 @@ using Base.Test
                     dc3 = DeferredChannel()
                     put!(dc3, 14)
 
-                    io = IOBuffer()
+                    @compat io = IOBuffer()
                     serialize(io, dc3)
-                    dc3_string = takebuf_string(io)
+                    dc3_string = take!(io)
                     close(io)
 
                     return dc3_string
