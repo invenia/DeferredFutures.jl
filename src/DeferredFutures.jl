@@ -47,6 +47,21 @@ function Base.show(io::IO, ref::DeferredFuture)
     print(io, "$(typeof(ref).name.name) at ($(rc.where),$(rc.whence),$(rc.id))")
 end
 
+"""
+    serialize(s::AbstractSerializer, ref::DeferredFuture)
+
+Serialize a DeferredFuture such that it can de deserialized by `deserialize` in a cluster.
+"""
+function Base.serialize(s::AbstractSerializer, ref::DeferredFuture)
+    if VERSION < v"0.6.0-pre.beta.308"
+        Base.Serializer.serialize_type(s, DeferredFuture)
+    else
+        Base.Serializer.serialize_type(s, DeferredFuture, true)
+    end
+
+    Base.Serializer.serialize_any(s, ref.outer)
+end
+
 @auto_hash_equals type DeferredChannel <: DeferredRemoteRef
     outer::RemoteChannel
     func::Function  # Channel generating function used for creating the `RemoteChannel`
@@ -95,6 +110,23 @@ function Base.show(io::IO, ref::DeferredChannel)
         io,
         "$(typeof(ref).name.name)($(ref.func)) at ($(rc.where),$(rc.whence),$(rc.id))"
     )
+end
+
+"""
+    serialize(s::AbstractSerializer, ref::DeferredChannel)
+
+Serialize a DeferredChannel such that it can de deserialized by `deserialize` in a cluster.
+"""
+function Base.serialize(s::AbstractSerializer, ref::DeferredChannel)
+    Base.Serializer.serialize_cycle(s, ref) && return
+
+    if VERSION < v"0.6.0-pre.beta.308"
+        Base.Serializer.serialize_type(s, DeferredChannel)
+    else
+        Base.Serializer.serialize_type(s, DeferredChannel, true)
+    end
+    Base.Serializer.serialize_any(s, ref.outer)
+    Base.Serializer.serialize(s, ref.func)
 end
 
 """

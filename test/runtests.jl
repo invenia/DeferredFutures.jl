@@ -1,5 +1,6 @@
 using DeferredFutures
 using Base.Test
+using Compat
 
 @testset "DeferredRemoteRefs" begin
     @testset "DeferredFuture Comparison" begin
@@ -304,5 +305,177 @@ using Base.Test
 
         dc = DeferredChannel(rc, print)
         @test sprint(show, dc) == "DeferredChannel(print) at $rc_params"
+    end
+
+    @testset "Serialization" begin
+        @testset "DeferredFuture serialization on same process" begin
+            df = DeferredFuture(myid())
+
+            io = IOBuffer()
+            serialize(io, df)
+            seekstart(io)
+            deserialized_df = deserialize(io)
+            close(io)
+
+            @test deserialized_df == df
+        end
+
+        @testset "DeferredFuture serialization on a cluster" begin
+            df1 = DeferredFuture(myid())
+            df2 = DeferredFuture(myid())
+
+            @compat io = IOBuffer()
+            serialize(io, df1)
+            df1_string = take!(io)
+            close(io)
+
+            put!(df2, 28)
+
+            @compat io = IOBuffer()
+            serialize(io, df2)
+            df2_string = take!(io)
+            close(io)
+
+            bottom = addprocs(1)[1]
+            @everywhere using DeferredFutures
+            @everywhere using Compat
+
+            df3_string = ""
+            try
+                df3_string = @fetchfrom bottom begin
+                    io = IOBuffer()
+                    write(io, df1_string)
+                    seekstart(io)
+                    bottom_df1 = deserialize(io)
+                    close(io)
+
+                    put!(bottom_df1, 37)
+
+                    io = IOBuffer()
+                    write(io, df2_string)
+                    seekstart(io)
+                    bottom_df2 = deserialize(io)
+                    close(io)
+
+                    @test isready(bottom_df2) == true
+                    @test fetch(bottom_df2) == 28
+                    reset!(bottom_df2)
+
+                    df3 = DeferredFuture(myid())
+                    put!(df3, 14)
+
+                    @compat io = IOBuffer()
+                    serialize(io, df3)
+                    df3_string = take!(io)
+                    close(io)
+
+                    return df3_string
+                end
+
+                @test isready(df1) == true
+                @test fetch(df1) == 37
+
+                @test isready(df2) == false
+
+                @test df3_string != ""
+
+            finally
+                rmprocs(bottom)
+            end
+
+            io = IOBuffer()
+            write(io, df3_string)
+            seekstart(io)
+            bottom_df3 = deserialize(io)
+            close(io)
+
+            @test_broken isready(bottom_df3) == true
+            @test_broken fetch(bottom_df3) == 14
+        end
+
+        @testset "DeferredChannel serialization on same process" begin
+            dc = DeferredChannel()
+
+            io = IOBuffer()
+            serialize(io, dc)
+            seekstart(io)
+            deserialized_dc = deserialize(io)
+            close(io)
+
+            @test deserialized_dc == dc
+        end
+
+        @testset "DeferredChannel serialization on a cluster" begin
+            dc1 = DeferredChannel()
+            dc2 = DeferredChannel()
+
+            @compat io = IOBuffer()
+            serialize(io, dc1)
+            dc1_string = take!(io)
+            close(io)
+
+            put!(dc2, 28)
+
+            @compat io = IOBuffer()
+            serialize(io, dc2)
+            dc2_string = take!(io)
+            close(io)
+
+            bottom = addprocs(1)[1]
+            @everywhere using DeferredFutures
+            @everywhere using Compat
+
+            dc3_string = ""
+            try
+                dc3_string = @fetchfrom bottom begin
+                    io = IOBuffer()
+                    write(io, dc1_string)
+                    seekstart(io)
+                    bottom_dc1 = deserialize(io)
+                    close(io)
+
+                    put!(bottom_dc1, 37)
+
+                    io = IOBuffer()
+                    write(io, dc2_string)
+                    seekstart(io)
+                    bottom_dc2 = deserialize(io)
+                    close(io)
+
+                    @test isready(bottom_dc2) == true
+                    @test fetch(bottom_dc2) == 28
+                    reset!(bottom_dc2)
+
+                    dc3 = DeferredChannel()
+                    put!(dc3, 14)
+
+                    @compat io = IOBuffer()
+                    serialize(io, dc3)
+                    dc3_string = take!(io)
+                    close(io)
+
+                    return dc3_string
+                end
+
+                @test isready(dc1) == true
+                @test fetch(dc1) == 37
+
+                @test isready(dc2) == false
+
+                @test dc3_string != ""
+
+            finally
+                rmprocs(bottom)
+            end
+
+            io = IOBuffer()
+            write(io, dc3_string)
+            seekstart(io)
+            bottom_dc3 = deserialize(io)
+            close(io)
+
+            @test_broken isready(bottom_dc3) == true
+            @test_broken fetch(bottom_dc3) == 14
+        end
     end
 end
