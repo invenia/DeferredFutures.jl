@@ -53,7 +53,7 @@ end
 Serialize a DeferredFuture such that it can de deserialized by `deserialize` in a cluster.
 """
 function Base.serialize(s::AbstractSerializer, ref::DeferredFuture)
-    if VERSION < v"0.6.0-pre.beta.308"
+    if VERSION < v"0.6.0-pre.beta.363"
         Base.Serializer.serialize_type(s, DeferredFuture)
     else
         Base.Serializer.serialize_type(s, DeferredFuture, true)
@@ -120,7 +120,7 @@ Serialize a DeferredChannel such that it can de deserialized by `deserialize` in
 function Base.serialize(s::AbstractSerializer, ref::DeferredChannel)
     Base.Serializer.serialize_cycle(s, ref) && return
 
-    if VERSION < v"0.6.0-pre.beta.308"
+    if VERSION < v"0.6.0-pre.beta.363"
         Base.Serializer.serialize_type(s, DeferredChannel)
     else
         Base.Serializer.serialize_type(s, DeferredChannel, true)
