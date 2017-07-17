@@ -3,6 +3,7 @@ module DeferredFutures
 export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
 
 using AutoHashEquals
+using Compat
 
 if VERSION >= v"0.6.0-dev.2830"
     import Base.Distributed: AbstractRemoteRef
@@ -16,7 +17,7 @@ end
 `DeferredRemoteRef` is the common supertype of `DeferredFuture` and `DeferredChannel` and is
 the counterpart of `$AbstractRemoteRef`.
 """
-abstract DeferredRemoteRef <: AbstractRemoteRef
+@compat abstract type DeferredRemoteRef <: AbstractRemoteRef end
 
 @auto_hash_equals type DeferredFuture <: DeferredRemoteRef
     outer::RemoteChannel
