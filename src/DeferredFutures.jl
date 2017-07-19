@@ -3,6 +3,7 @@ module DeferredFutures
 export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
 
 using AutoHashEquals
+using Compat
 
 if VERSION >= v"0.6.0-dev.2830"
     import Base.Distributed: AbstractRemoteRef
@@ -16,7 +17,7 @@ end
 `DeferredRemoteRef` is the common supertype of `DeferredFuture` and `DeferredChannel` and is
 the counterpart of `$AbstractRemoteRef`.
 """
-abstract DeferredRemoteRef <: AbstractRemoteRef
+@compat abstract type DeferredRemoteRef <: AbstractRemoteRef end
 
 @auto_hash_equals type DeferredFuture <: DeferredRemoteRef
     outer::RemoteChannel
@@ -53,6 +54,8 @@ end
 Serialize a DeferredFuture such that it can de deserialized by `deserialize` in a cluster.
 """
 function Base.serialize(s::AbstractSerializer, ref::DeferredFuture)
+    Base.Serializer.serialize_cycle(s, ref) && return
+
     if VERSION < v"0.6.0-pre.beta.363"
         Base.Serializer.serialize_type(s, DeferredFuture)
     else

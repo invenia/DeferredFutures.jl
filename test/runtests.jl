@@ -477,5 +477,37 @@ using Compat
             @test_broken isready(bottom_dc3) == true
             @test_broken fetch(bottom_dc3) == 14
         end
+
+        @testset "DeferredFuture serialization as part of another object" begin
+            pnums = addprocs(1)
+            @everywhere using DeferredFutures
+
+            try
+                x = ()->3
+                df = DeferredFuture()
+                result = @fetch (df, x)
+
+                @test result[1] == df
+                @test result[2]() == 3
+            finally
+                rmprocs(pnums)
+            end
+        end
+
+        @testset "DeferredChannel serialization as part of another object" begin
+            pnums = addprocs(1)
+            @everywhere using DeferredFutures
+
+            try
+                x = ()->3
+                dc = DeferredChannel()
+                result = @fetch (dc, x)
+
+                @test result[1] == dc
+                @test result[2]() == 3
+            finally
+                rmprocs(pnums)
+            end
+        end
     end
 end
