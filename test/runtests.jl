@@ -324,14 +324,14 @@ using Compat
             df1 = DeferredFuture(myid())
             df2 = DeferredFuture(myid())
 
-            @compat io = IOBuffer()
+            io = IOBuffer()
             serialize(io, df1)
             df1_string = take!(io)
             close(io)
 
             put!(df2, 28)
 
-            @compat io = IOBuffer()
+            io = IOBuffer()
             serialize(io, df2)
             df2_string = take!(io)
             close(io)
@@ -364,7 +364,7 @@ using Compat
                     df3 = DeferredFuture(myid())
                     put!(df3, 14)
 
-                    @compat io = IOBuffer()
+                    io = IOBuffer()
                     serialize(io, df3)
                     df3_string = take!(io)
                     close(io)
@@ -409,14 +409,14 @@ using Compat
             dc1 = DeferredChannel()
             dc2 = DeferredChannel()
 
-            @compat io = IOBuffer()
+            io = IOBuffer()
             serialize(io, dc1)
             dc1_string = take!(io)
             close(io)
 
             put!(dc2, 28)
 
-            @compat io = IOBuffer()
+            io = IOBuffer()
             serialize(io, dc2)
             dc2_string = take!(io)
             close(io)
@@ -449,7 +449,7 @@ using Compat
                     dc3 = DeferredChannel()
                     put!(dc3, 14)
 
-                    @compat io = IOBuffer()
+                    io = IOBuffer()
                     serialize(io, dc3)
                     dc3_string = take!(io)
                     close(io)
