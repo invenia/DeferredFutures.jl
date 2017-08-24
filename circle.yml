@@ -32,7 +32,7 @@ jobs:
           at: ~/
       - run:
           name: Install Coverage.jl
-          command: julia -e 'Pkg.add("Coverage")'
+          command: julia -e 'Pkg.add("Coverage"); Pkg.checkout("Coverage")'
       - run:
           name: Submit Coverage
           command: julia -e 'cd(Pkg.dir("DeferredFutures")); using Coverage; Codecov.submit(Codecov.process_folder())'
