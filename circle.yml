@@ -1,0 +1,41 @@
+version: 2
+
+defaults: &defaults
+  docker:
+    - image: julia:0.6
+
+jobs:
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Build package
+          command: julia -e 'Pkg.clone(pwd()); Pkg.build("DeferredFutures")'
+      - run:
+          name: Test package
+          command: julia -e 'Pkg.test("DeferredFutures"; coverage=true)'
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
+  coverage:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install Coverage.jl
+          command: julia -e 'Pkg.add("Coverage")'
+      - run:
+          name: Submit Coverage
+          command: julia -e 'cd(Pkg.dir("DeferredFutures")); using Coverage; Codecov.submit(Codecov.process_folder())'
+
+workflows:
+  version: 2
+  linux_env:
+    jobs:
+      - test
+      - coverage:
+          requires:
+            - test
