@@ -23,6 +23,11 @@ jobs:
   coverage:
     <<: *defaults
     steps:
+      - run:
+          name: Install Git
+          command: |
+            apt update
+            apt install -y git
       - attach_workspace:
           at: ~/
       - run:
