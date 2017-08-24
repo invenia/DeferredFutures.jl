@@ -1,6 +1,7 @@
 version: 2
 
 defaults: &defaults
+  working_directory: ~/DeferredFutures
   docker:
     - image: julia:0.6
 
@@ -16,14 +17,14 @@ jobs:
           name: Test package
           command: julia -e 'Pkg.test("DeferredFutures"; coverage=true)'
       - persist_to_workspace:
-          root: .
+          root: ~/
           paths:
-            - .
+            - ./
   coverage:
     <<: *defaults
     steps:
       - attach_workspace:
-          at: .
+          at: ~/
       - run:
           name: Install Coverage.jl
           command: julia -e 'Pkg.add("Coverage")'
