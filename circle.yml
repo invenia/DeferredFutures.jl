@@ -24,10 +24,10 @@ jobs:
     <<: *defaults
     steps:
       - run:
-          name: Install Git
+          name: Install tools for building packages
           command: |
             apt update
-            apt install -y git
+            apt install -y git unzip build-essential
       - attach_workspace:
           at: ~/
       - run:
