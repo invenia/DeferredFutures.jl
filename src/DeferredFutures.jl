@@ -5,21 +5,15 @@ export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
 using AutoHashEquals
 using Compat
 
-if VERSION >= v"0.6.0-dev.2830"
-    import Base.Distributed: AbstractRemoteRef
-elseif VERSION >= v"0.6.0-dev.2603"
-    import Base.Parallel: AbstractRemoteRef
-else
-    import Base: AbstractRemoteRef
-end
+import Base.Distributed: AbstractRemoteRef
 
 """
 `DeferredRemoteRef` is the common supertype of `DeferredFuture` and `DeferredChannel` and is
 the counterpart of `$AbstractRemoteRef`.
 """
-@compat abstract type DeferredRemoteRef <: AbstractRemoteRef end
+abstract type DeferredRemoteRef <: AbstractRemoteRef end
 
-@auto_hash_equals type DeferredFuture <: DeferredRemoteRef
+@auto_hash_equals mutable struct DeferredFuture <: DeferredRemoteRef
     outer::RemoteChannel
 end
 
@@ -56,16 +50,12 @@ Serialize a DeferredFuture such that it can de deserialized by `deserialize` in 
 function Base.serialize(s::AbstractSerializer, ref::DeferredFuture)
     Base.Serializer.serialize_cycle(s, ref) && return
 
-    if VERSION < v"0.6.0-pre.beta.363"
-        Base.Serializer.serialize_type(s, DeferredFuture)
-    else
-        Base.Serializer.serialize_type(s, DeferredFuture, true)
-    end
+    Base.Serializer.serialize_type(s, DeferredFuture, true)
 
     Base.Serializer.serialize_any(s, ref.outer)
 end
 
-@auto_hash_equals type DeferredChannel <: DeferredRemoteRef
+@auto_hash_equals mutable struct DeferredChannel <: DeferredRemoteRef
     outer::RemoteChannel
     func::Function  # Channel generating function used for creating the `RemoteChannel`
 end
@@ -123,11 +113,7 @@ Serialize a DeferredChannel such that it can de deserialized by `deserialize` in
 function Base.serialize(s::AbstractSerializer, ref::DeferredChannel)
     Base.Serializer.serialize_cycle(s, ref) && return
 
-    if VERSION < v"0.6.0-pre.beta.363"
-        Base.Serializer.serialize_type(s, DeferredChannel)
-    else
-        Base.Serializer.serialize_type(s, DeferredChannel, true)
-    end
+    Base.Serializer.serialize_type(s, DeferredChannel, true)
     Base.Serializer.serialize_any(s, ref.outer)
     Base.Serializer.serialize(s, ref.func)
 end
