@@ -35,7 +35,7 @@ jobs:
           command: julia -e 'Pkg.add("Coverage"); Pkg.checkout("Coverage")'
       - run:
           name: Submit Coverage
-          command: julia -e 'cd(Pkg.dir("DeferredFutures")); using Coverage; Codecov.submit(Codecov.process_folder())'
+          command: julia -e 'cd(expanduser("~/DeferredFutures")); using Coverage; Codecov.submit(Codecov.process_folder())'
 
 workflows:
   version: 2
