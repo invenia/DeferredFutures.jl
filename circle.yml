@@ -1,6 +1,7 @@
 version: 2
 
 defaults: &defaults
+  working_directory: ~/DeferredFutures
   docker:
     - image: julia:0.6
 
@@ -16,20 +17,25 @@ jobs:
           name: Test package
           command: julia -e 'Pkg.test("DeferredFutures"; coverage=true)'
       - persist_to_workspace:
-          root: .
+          root: ~/
           paths:
-            - .
+            - ./
   coverage:
     <<: *defaults
     steps:
+      - run:
+          name: Install tools for building packages
+          command: |
+            apt update
+            apt install -y git unzip build-essential
       - attach_workspace:
-          at: .
+          at: ~/
       - run:
           name: Install Coverage.jl
-          command: julia -e 'Pkg.add("Coverage")'
+          command: julia -e 'Pkg.add("Coverage"); Pkg.checkout("Coverage")'
       - run:
           name: Submit Coverage
-          command: julia -e 'cd(Pkg.dir("DeferredFutures")); using Coverage; Codecov.submit(Codecov.process_folder())'
+          command: julia -e 'cd(expanduser("~/DeferredFutures")); using Coverage; Codecov.submit(Codecov.process_folder())'
 
 workflows:
   version: 2
