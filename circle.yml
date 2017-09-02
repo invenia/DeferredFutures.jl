@@ -2,6 +2,8 @@ version: 2
 
 defaults: &DEFAULTS
   working_directory: ~/DeferredFutures
+  environment:
+    PKG_NAME: DeferredFutures
 
 v0.5: &POINT_FIVE
   docker:
@@ -20,10 +22,10 @@ test: &TEST
     - checkout
     - run:
         name: Build package
-        command: julia -e 'Pkg.clone(pwd()); Pkg.build("DeferredFutures")'
+        command: julia -e "Pkg.clone(pwd()); Pkg.build(\"$PKG_NAME\")"
     - run:
         name: Test package
-        command: julia -e 'Pkg.test("DeferredFutures"; coverage=true)'
+        command: julia -e "Pkg.test(\"$PKG_NAME\"; coverage=true)"
     - persist_to_workspace:
         root: ~/
         paths:
@@ -38,7 +40,7 @@ coverage: &COVERAGE
         command: julia -e 'Pkg.checkout("Coverage")'
     - run:
         name: Submit Coverage
-        command: julia -e 'cd(expanduser("~/DeferredFutures")); using Coverage; Codecov.submit(Codecov.process_folder())'
+        command: julia -e "cd(expanduser(\"$CIRCLE_WORKING_DIRECTORY\")); using Coverage; Codecov.submit(Codecov.process_folder())"
 
 jobs:
   test_0.5:
