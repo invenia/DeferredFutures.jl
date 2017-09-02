@@ -1,47 +1,74 @@
 version: 2
 
-defaults: &defaults
+defaults: &DEFAULTS
   working_directory: ~/DeferredFutures
+  environment:
+    PKG_NAME: DeferredFutures
+
+v0.5: &POINT_FIVE
   docker:
-    - image: julia:0.6
+    - image: invenia/julia-ci-extras:0.5-latest
+
+v0.6: &POINT_SIX
+  docker:
+    - image: invenia/julia-ci-extras:0.6-latest
+
+nightly: &NIGHTLY
+  docker:
+    - image: invenia/julia-ci-extras:latest
+
+test: &TEST
+  steps:
+    - checkout
+    - run:
+        name: Build package
+        command: julia -e "Pkg.clone(pwd()); Pkg.build(\"$PKG_NAME\")"
+    - run:
+        name: Test package
+        command: julia -e "Pkg.test(\"$PKG_NAME\"; coverage=true)"
+    - persist_to_workspace:
+        root: ~/
+        paths:
+          - ./
+
+coverage: &COVERAGE
+  steps:
+    - attach_workspace:
+        at: ~/
+    - run:
+        name: Update Coverage.jl to get Circle CI support
+        command: julia -e 'Pkg.checkout("Coverage")'
+    - run:
+        name: Submit Coverage
+        command: julia -e "cd(expanduser(\"$CIRCLE_WORKING_DIRECTORY\")); using Coverage; Codecov.submit(Codecov.process_folder())"
 
 jobs:
-  test:
-    <<: *defaults
-    steps:
-      - checkout
-      - run:
-          name: Build package
-          command: julia -e 'Pkg.clone(pwd()); Pkg.build("DeferredFutures")'
-      - run:
-          name: Test package
-          command: julia -e 'Pkg.test("DeferredFutures"; coverage=true)'
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - ./
-  coverage:
-    <<: *defaults
-    steps:
-      - run:
-          name: Install tools for building packages
-          command: |
-            apt update
-            apt install -y git unzip build-essential
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: Install Coverage.jl
-          command: julia -e 'Pkg.add("Coverage"); Pkg.checkout("Coverage")'
-      - run:
-          name: Submit Coverage
-          command: julia -e 'cd(expanduser("~/DeferredFutures")); using Coverage; Codecov.submit(Codecov.process_folder())'
+  test_0.5:
+    <<: [*DEFAULTS, *POINT_FIVE, *TEST]
+  test_0.6:
+    <<: [*DEFAULTS, *POINT_SIX, *TEST]
+  test_nightly:
+    <<: [*DEFAULTS, *NIGHTLY, *TEST]
+  coverage_0.5:
+    <<: [*DEFAULTS, *POINT_FIVE, *COVERAGE]
+  coverage_0.6:
+    <<: [*DEFAULTS, *POINT_SIX, *COVERAGE]
+  coverage_nightly:
+    <<: [*DEFAULTS, *NIGHTLY, *COVERAGE]
 
 workflows:
   version: 2
   linux_env:
     jobs:
-      - test
-      - coverage:
+      - test_0.5
+      - test_0.6
+      - test_nightly
+      - coverage_0.5:
           requires:
-            - test
+            - test_0.5
+      - coverage_0.6:
+          requires:
+            - test_0.6
+      - coverage_nightly:
+          requires:
+            - test_nightly
