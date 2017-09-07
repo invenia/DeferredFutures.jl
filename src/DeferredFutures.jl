@@ -3,7 +3,6 @@ module DeferredFutures
 export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
 
 using AutoHashEquals
-using Compat
 
 import Base.Distributed: AbstractRemoteRef
 
