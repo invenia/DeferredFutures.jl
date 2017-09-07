@@ -1,6 +1,5 @@
 using DeferredFutures
 using Base.Test
-using Compat
 
 @testset "DeferredRemoteRefs" begin
     @testset "DeferredFuture Comparison" begin
@@ -338,7 +337,6 @@ using Compat
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
-            @everywhere using Compat
 
             df3_string = ""
             try
@@ -423,7 +421,6 @@ using Compat
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
-            @everywhere using Compat
 
             dc3_string = ""
             try
