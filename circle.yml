@@ -5,10 +5,6 @@ defaults: &DEFAULTS
   environment:
     PKG_NAME: DeferredFutures
 
-v0.5: &POINT_FIVE
-  docker:
-    - image: invenia/julia-ci-extras:0.5-latest
-
 v0.6: &POINT_SIX
   docker:
     - image: invenia/julia-ci-extras:0.6-latest
@@ -43,14 +39,10 @@ coverage: &COVERAGE
         command: julia -e "cd(expanduser(\"$CIRCLE_WORKING_DIRECTORY\")); using Coverage; Codecov.submit(Codecov.process_folder())"
 
 jobs:
-  test_0.5:
-    <<: [*DEFAULTS, *POINT_FIVE, *TEST]
   test_0.6:
     <<: [*DEFAULTS, *POINT_SIX, *TEST]
   test_nightly:
     <<: [*DEFAULTS, *NIGHTLY, *TEST]
-  coverage_0.5:
-    <<: [*DEFAULTS, *POINT_FIVE, *COVERAGE]
   coverage_0.6:
     <<: [*DEFAULTS, *POINT_SIX, *COVERAGE]
   coverage_nightly:
@@ -60,12 +52,8 @@ workflows:
   version: 2
   linux_env:
     jobs:
-      - test_0.5
       - test_0.6
       - test_nightly
-      - coverage_0.5:
-          requires:
-            - test_0.5
       - coverage_0.6:
           requires:
             - test_0.6
