@@ -288,7 +288,7 @@ using Compat
         fut = macroexpand(:(@defer Future()))
         other_future = macroexpand(:(@defer Future()))
 
-        ex = macroexpand(:(@defer type Foo end))
+        ex = macroexpand(:(@defer mutable struct Foo end))
         isa(ex.args[1], AssertionError)
 
         ex = macroexpand(:(@defer Channel()))
