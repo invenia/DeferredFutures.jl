@@ -1,3 +1,5 @@
+__precompile__()
+
 module DeferredFutures
 
 export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
