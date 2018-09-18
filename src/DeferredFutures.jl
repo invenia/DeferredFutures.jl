@@ -5,8 +5,10 @@ module DeferredFutures
 export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
 
 using AutoHashEquals
-
-import Base.Distributed: AbstractRemoteRef
+using Compat.Distributed
+import Compat.Distributed: AbstractRemoteRef
+using Compat.Serialization
+import Compat.Serialization: serialize
 
 """
 `DeferredRemoteRef` is the common supertype of `DeferredFuture` and `DeferredChannel` and is
@@ -28,7 +30,7 @@ from. The `pid` argument controlls where the outermost reference to that data is
 """
 function DeferredFuture(pid::Integer=myid())
     ref = DeferredFuture(RemoteChannel(pid))
-    finalizer(ref, finalize_ref)
+    finalizer(finalize_ref, ref)
     return ref
 end
 
@@ -48,12 +50,12 @@ end
 
 Serialize a DeferredFuture such that it can de deserialized by `deserialize` in a cluster.
 """
-function Base.serialize(s::AbstractSerializer, ref::DeferredFuture)
-    Base.Serializer.serialize_cycle(s, ref) && return
+function Serialization.serialize(s::AbstractSerializer, ref::DeferredFuture)
+    Serialization.serialize_cycle(s, ref) && return
 
-    Base.Serializer.serialize_type(s, DeferredFuture, true)
+    Serialization.serialize_type(s, DeferredFuture, true)
 
-    Base.Serializer.serialize_any(s, ref.outer)
+    Serialization.serialize_any(s, ref.outer)
 end
 
 @auto_hash_equals mutable struct DeferredChannel <: DeferredRemoteRef
@@ -72,7 +74,7 @@ The default `pid` is the current process.
 """
 function DeferredChannel(f::Function, pid::Integer=myid())
     ref = DeferredChannel(RemoteChannel(pid), f)
-    finalizer(ref, finalize_ref)
+    finalizer(finalize_ref, ref)
     return ref
 end
 
@@ -88,7 +90,7 @@ data is located.
 """
 function DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=Any)
     ref = DeferredChannel(RemoteChannel(pid), ()->Channel{content}(num))
-    finalizer(ref, finalize_ref)
+    finalizer(finalize_ref, ref)
     return ref
 end
 
@@ -111,12 +113,12 @@ end
 
 Serialize a DeferredChannel such that it can de deserialized by `deserialize` in a cluster.
 """
-function Base.serialize(s::AbstractSerializer, ref::DeferredChannel)
-    Base.Serializer.serialize_cycle(s, ref) && return
+function Serialization.serialize(s::AbstractSerializer, ref::DeferredChannel)
+    Serialization.serialize_cycle(s, ref) && return
 
-    Base.Serializer.serialize_type(s, DeferredChannel, true)
-    Base.Serializer.serialize_any(s, ref.outer)
-    Base.Serializer.serialize(s, ref.func)
+    Serialization.serialize_type(s, DeferredChannel, true)
+    Serialization.serialize_any(s, ref.outer)
+    Serialization.serialize(s, ref.func)
 end
 
 """
