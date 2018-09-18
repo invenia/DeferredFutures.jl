@@ -7,8 +7,14 @@ export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
 using AutoHashEquals
 using Compat.Distributed
 import Compat.Distributed: AbstractRemoteRef
-using Compat.Serialization
 import Compat.Serialization: serialize
+using Compat: @compat
+
+if VERSION < v"0.7"
+    using Base.Serializer: serialize_cycle, serialize_any, serialize_type
+else
+    using Serialization: serialize_cycle, serialize_any, serialize_type
+end
 
 """
 `DeferredRemoteRef` is the common supertype of `DeferredFuture` and `DeferredChannel` and is
@@ -30,7 +36,7 @@ from. The `pid` argument controlls where the outermost reference to that data is
 """
 function DeferredFuture(pid::Integer=myid())
     ref = DeferredFuture(RemoteChannel(pid))
-    finalizer(finalize_ref, ref)
+    @compat finalizer(finalize_ref, ref)
     return ref
 end
 
@@ -50,12 +56,12 @@ end
 
 Serialize a DeferredFuture such that it can de deserialized by `deserialize` in a cluster.
 """
-function Serialization.serialize(s::AbstractSerializer, ref::DeferredFuture)
-    Serialization.serialize_cycle(s, ref) && return
+function serialize(s::AbstractSerializer, ref::DeferredFuture)
+    serialize_cycle(s, ref) && return
 
-    Serialization.serialize_type(s, DeferredFuture, true)
+    serialize_type(s, DeferredFuture, true)
 
-    Serialization.serialize_any(s, ref.outer)
+    serialize_any(s, ref.outer)
 end
 
 @auto_hash_equals mutable struct DeferredChannel <: DeferredRemoteRef
@@ -74,7 +80,7 @@ The default `pid` is the current process.
 """
 function DeferredChannel(f::Function, pid::Integer=myid())
     ref = DeferredChannel(RemoteChannel(pid), f)
-    finalizer(finalize_ref, ref)
+    @compat finalizer(finalize_ref, ref)
     return ref
 end
 
@@ -90,7 +96,7 @@ data is located.
 """
 function DeferredChannel(pid::Integer=myid(), num::Integer=1; content::DataType=Any)
     ref = DeferredChannel(RemoteChannel(pid), ()->Channel{content}(num))
-    finalizer(finalize_ref, ref)
+    @compat finalizer(finalize_ref, ref)
     return ref
 end
 
@@ -113,12 +119,12 @@ end
 
 Serialize a DeferredChannel such that it can de deserialized by `deserialize` in a cluster.
 """
-function Serialization.serialize(s::AbstractSerializer, ref::DeferredChannel)
-    Serialization.serialize_cycle(s, ref) && return
+function serialize(s::AbstractSerializer, ref::DeferredChannel)
+    serialize_cycle(s, ref) && return
 
-    Serialization.serialize_type(s, DeferredChannel, true)
-    Serialization.serialize_any(s, ref.outer)
-    Serialization.serialize(s, ref.func)
+    serialize_type(s, DeferredChannel, true)
+    serialize_any(s, ref.outer)
+    serialize(s, ref.func)
 end
 
 """

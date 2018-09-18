@@ -2,6 +2,7 @@ using DeferredFutures
 using Compat.Serialization
 using Compat.Distributed
 using Compat.Test
+using Compat
 
 @testset "DeferredRemoteRefs" begin
     @testset "DeferredFuture Comparison" begin
@@ -227,7 +228,7 @@ using Compat.Test
             end
 
             # tests that the data still exists on bottom
-            @test_broken remote_size_new >= remote_size + rand_size
+            @test_skip remote_size_new >= remote_size + rand_size
         finally
             rmprocs(bottom)
         end
@@ -289,12 +290,19 @@ using Compat.Test
         fut = macroexpand(Main, :(@defer Future()))
         other_future = macroexpand(Main, :(@defer Future()))
 
-        @test_throws LoadError ex = macroexpand(Main, :(@defer mutable struct Foo end))
-        isa(ex.args[1], AssertionError)
+        if VERSION < v"0.7"
+            ex = macroexpand(Main, :(@defer mutable struct Foo end))
+            isa(ex.args[1], AssertionError)
 
-         @test_throws LoadError ex = macroexpand(Main, :(@defer Channel()))
-        isa(ex.args[1], AssertionError)
+             ex = macroexpand(Main, :(@defer Channel()))
+            isa(ex.args[1], AssertionError)
+        else
+            @test_throws LoadError ex = macroexpand(Main, :(@defer mutable struct Foo end))
+            isa(ex.args[1], AssertionError)
 
+            @test_throws LoadError ex = macroexpand(Main, :(@defer Channel()))
+            isa(ex.args[1], AssertionError)
+        end
         close(channel)
     end
 
@@ -339,7 +347,7 @@ using Compat.Test
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
-            @everywhere using Serialization
+            @everywhere using Compat.Serialization
 
             df3_string = ""
             try
@@ -424,7 +432,7 @@ using Compat.Test
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
-            @everywhere using Serialization
+            @everywhere using Compat.Serialization
 
             dc3_string = ""
             try
