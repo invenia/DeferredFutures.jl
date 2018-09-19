@@ -11,9 +11,9 @@ import Compat.Serialization: serialize
 using Compat: @compat
 
 if VERSION < v"0.7"
-    using Base.Serializer: serialize_cycle, serialize_any, serialize_type
+    using Base.Serializer: AbstractSerializer, serialize_cycle, serialize_any, serialize_type
 else
-    using Serialization: serialize_cycle, serialize_any, serialize_type
+    using Serialization: AbstractSerializer, serialize_cycle, serialize_any, serialize_type
 end
 
 """
