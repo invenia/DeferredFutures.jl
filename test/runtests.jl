@@ -200,7 +200,7 @@ using Compat
     @testset "Allocation" begin
         rand_size = 800000000  # sizeof(rand(10000, 10000))
         GC.gc()
-        main_size = Base.summarysize(Main)
+        main_size = Base.summarysize(Distributed)
 
         top = myid()
         bottom = addprocs(1)[1]
@@ -211,7 +211,7 @@ using Compat
 
             remote_size = remotecall_fetch(bottom, df) do dfr
                 GC.gc()
-                main_size = Base.summarysize(Main)
+                main_size = Base.summarysize(Distributed)
 
                 # the DeferredFuture is initialized and the data is stored on bottom
                 put!(dfr, rand(10000, 10000))
@@ -220,15 +220,15 @@ using Compat
 
             GC.gc()
             # tests that the data has not been transfered to top
-            @test Base.summarysize(Main) < main_size + rand_size
+            @test Base.summarysize(Distributed) < main_size + rand_size
 
             remote_size_new = remotecall_fetch(bottom) do
                 GC.gc()
-                Base.summarysize(Main)
+                Base.summarysize(Distributed)
             end
 
             # tests that the data still exists on bottom
-            @test_skip remote_size_new >= remote_size + rand_size
+            @test remote_size_new >= remote_size + rand_size
         finally
             rmprocs(bottom)
         end
