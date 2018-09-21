@@ -275,8 +275,8 @@ using Compat
     end
 
     @testset "@defer" begin
-        ex = macroexpand(Main, :(@defer RemoteChannel(()->Channel(5))))
-        ex = macroexpand(Main, :(@defer RemoteChannel()))
+        ex = macroexpand(@__MODULE__, :(@defer RemoteChannel(()->Channel(5))))
+        ex = macroexpand(@__MODULE__, :(@defer RemoteChannel()))
 
         channel = @defer RemoteChannel(()->Channel(32))
 
@@ -287,21 +287,29 @@ using Compat
         @test take!(channel) == 1
         @test fetch(channel) == 2
 
-        fut = macroexpand(Main, :(@defer Future()))
-        other_future = macroexpand(Main, :(@defer Future()))
+        fut = macroexpand(@__MODULE__, :(@defer Future()))
+        other_future = macroexpand(@__MODULE__, :(@defer Future()))
 
         if VERSION < v"0.7"
-            ex = macroexpand(Main, :(@defer mutable struct Foo end))
+            ex = macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
             isa(ex.args[1], AssertionError)
 
-             ex = macroexpand(Main, :(@defer Channel()))
+             ex = macroexpand(@__MODULE__, :(@defer Channel()))
             isa(ex.args[1], AssertionError)
         else
-            @test_throws LoadError ex = macroexpand(Main, :(@defer mutable struct Foo end))
-            isa(ex.args[1], AssertionError)
+            @test_throws LoadError macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+            try
+                macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+            catch e
+                @test e.error isa AssertionError
+            end
 
-            @test_throws LoadError ex = macroexpand(Main, :(@defer Channel()))
-            isa(ex.args[1], AssertionError)
+            @test_throws LoadError macroexpand(@__MODULE__, :(@defer Channel()))
+            try
+                macroexpand(@__MODULE__, :(@defer Channel()))
+            catch e
+                @test e.error isa AssertionError
+            end
         end
         close(channel)
     end
