@@ -300,6 +300,7 @@ using Compat
             @test_throws LoadError macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
             try
                 macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+                @test false
             catch e
                 @test e.error isa AssertionError
             end
@@ -307,6 +308,7 @@ using Compat
             @test_throws LoadError macroexpand(@__MODULE__, :(@defer Channel()))
             try
                 macroexpand(@__MODULE__, :(@defer Channel()))
+                @test false
             catch e
                 @test e.error isa AssertionError
             end
