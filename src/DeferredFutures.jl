@@ -10,7 +10,7 @@ import Compat.Distributed: AbstractRemoteRef
 import Compat.Serialization: serialize
 using Compat: @compat
 
-if VERSION < v"0.7"
+if VERSION < v"0.7.0-DEV.3476"
     using Base.Serializer: AbstractSerializer, serialize_cycle, serialize_any, serialize_type
 else
     using Serialization: AbstractSerializer, serialize_cycle, serialize_any, serialize_type
