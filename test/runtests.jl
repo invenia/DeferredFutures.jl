@@ -1,5 +1,8 @@
 using DeferredFutures
-using Base.Test
+using Compat.Serialization
+using Compat.Distributed
+using Compat.Test
+using Compat
 
 @testset "DeferredRemoteRefs" begin
     @testset "DeferredFuture Comparison" begin
@@ -196,8 +199,8 @@ using Base.Test
 
     @testset "Allocation" begin
         rand_size = 800000000  # sizeof(rand(10000, 10000))
-        gc()
-        main_size = Base.summarysize(Main)
+        GC.gc()
+        main_size = Base.summarysize(Distributed)
 
         top = myid()
         bottom = addprocs(1)[1]
@@ -207,21 +210,21 @@ using Base.Test
             df = DeferredFuture(top)
 
             remote_size = remotecall_fetch(bottom, df) do dfr
-                gc()
-                main_size = Base.summarysize(Main)
+                GC.gc()
+                main_size = Base.summarysize(Distributed)
 
                 # the DeferredFuture is initialized and the data is stored on bottom
                 put!(dfr, rand(10000, 10000))
                 main_size
             end
 
-            gc()
+            GC.gc()
             # tests that the data has not been transfered to top
-            @test Base.summarysize(Main) < main_size + rand_size
+            @test Base.summarysize(Distributed) < main_size + rand_size
 
             remote_size_new = remotecall_fetch(bottom) do
-                gc()
-                Base.summarysize(Main)
+                GC.gc()
+                Base.summarysize(Distributed)
             end
 
             # tests that the data still exists on bottom
@@ -233,7 +236,7 @@ using Base.Test
 
     @testset "Transfer" begin
         rand_size = 800000000  # sizeof(rand(10000, 10000))
-        gc()
+        GC.gc()
         main_size = Base.summarysize(Main)
 
         top = myid()
@@ -244,24 +247,24 @@ using Base.Test
             df = DeferredFuture(top)
 
             left_remote_size = remotecall_fetch(left, df) do dfr
-                gc()
+                GC.gc()
                 main_size = Base.summarysize(Main)
                 put!(dfr, rand(10000, 10000))
                 main_size
             end
 
             right_remote_size = remotecall_fetch(right, df) do dfr
-                gc()
+                GC.gc()
                 main_size = Base.summarysize(Main)
                 global data = fetch(dfr)
                 main_size
             end
 
-            gc()
+            GC.gc()
             @test Base.summarysize(Main) < main_size + rand_size
 
             right_remote_size_new = remotecall_fetch(right) do
-                gc()
+                GC.gc()
                 Base.summarysize(Main)
             end
 
@@ -272,8 +275,8 @@ using Base.Test
     end
 
     @testset "@defer" begin
-        ex = macroexpand(:(@defer RemoteChannel(()->Channel(5))))
-        ex = macroexpand(:(@defer RemoteChannel()))
+        ex = macroexpand(@__MODULE__, :(@defer RemoteChannel(()->Channel(5))))
+        ex = macroexpand(@__MODULE__, :(@defer RemoteChannel()))
 
         channel = @defer RemoteChannel(()->Channel(32))
 
@@ -284,15 +287,32 @@ using Base.Test
         @test take!(channel) == 1
         @test fetch(channel) == 2
 
-        fut = macroexpand(:(@defer Future()))
-        other_future = macroexpand(:(@defer Future()))
+        fut = macroexpand(@__MODULE__, :(@defer Future()))
+        other_future = macroexpand(@__MODULE__, :(@defer Future()))
 
-        ex = macroexpand(:(@defer mutable struct Foo end))
-        isa(ex.args[1], AssertionError)
+        if VERSION < v"0.7"
+            ex = macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+            isa(ex.args[1], AssertionError)
 
-        ex = macroexpand(:(@defer Channel()))
-        isa(ex.args[1], AssertionError)
+             ex = macroexpand(@__MODULE__, :(@defer Channel()))
+            isa(ex.args[1], AssertionError)
+        else
+            @test_throws LoadError macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+            try
+                macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+                @test false
+            catch e
+                @test e.error isa AssertionError
+            end
 
+            @test_throws LoadError macroexpand(@__MODULE__, :(@defer Channel()))
+            try
+                macroexpand(@__MODULE__, :(@defer Channel()))
+                @test false
+            catch e
+                @test e.error isa AssertionError
+            end
+        end
         close(channel)
     end
 
@@ -337,6 +357,7 @@ using Base.Test
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
+            @everywhere using Compat.Serialization
 
             df3_string = ""
             try
@@ -421,6 +442,7 @@ using Base.Test
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
+            @everywhere using Compat.Serialization
 
             dc3_string = ""
             try
