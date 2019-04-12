@@ -1,8 +1,7 @@
 using DeferredFutures
-using Compat.Serialization
-using Compat.Distributed
-using Compat.Test
-using Compat
+using Distributed
+using Serialization
+using Test
 
 @testset "DeferredRemoteRefs" begin
     @testset "DeferredFuture Comparison" begin
@@ -357,7 +356,7 @@ using Compat
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
-            @everywhere using Compat.Serialization
+            @everywhere using Serialization
 
             df3_string = ""
             try
@@ -442,7 +441,7 @@ using Compat
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
-            @everywhere using Compat.Serialization
+            @everywhere using Serialization
 
             dc3_string = ""
             try
