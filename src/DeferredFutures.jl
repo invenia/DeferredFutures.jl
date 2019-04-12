@@ -4,18 +4,12 @@ module DeferredFutures
 
 using AutoHashEquals
 using Distributed
-using Serialization
+using Serialization: AbstractSerializer, serialize_any, serialize_cycle, serialize_type
 
 import Distributed: AbstractRemoteRef
 import Serialization: serialize
 
 export @defer, DeferredChannel, DeferredFuture, DeferredRemoteRef, reset!
-
-if VERSION < v"0.7.0-DEV.3476"
-    using Base.Serializer: AbstractSerializer, serialize_cycle, serialize_any, serialize_type
-else
-    using Serialization: AbstractSerializer, serialize_cycle, serialize_any, serialize_type
-end
 
 """
 `DeferredRemoteRef` is the common supertype of `DeferredFuture` and `DeferredChannel` and is

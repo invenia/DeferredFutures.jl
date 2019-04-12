@@ -289,28 +289,20 @@ using Test
         fut = macroexpand(@__MODULE__, :(@defer Future()))
         other_future = macroexpand(@__MODULE__, :(@defer Future()))
 
-        if VERSION < v"0.7"
-            ex = macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
-            isa(ex.args[1], AssertionError)
+        @test_throws LoadError macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+        try
+            macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+            @test false
+        catch e
+            @test e.error isa AssertionError
+        end
 
-             ex = macroexpand(@__MODULE__, :(@defer Channel()))
-            isa(ex.args[1], AssertionError)
-        else
-            @test_throws LoadError macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
-            try
-                macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
-                @test false
-            catch e
-                @test e.error isa AssertionError
-            end
-
-            @test_throws LoadError macroexpand(@__MODULE__, :(@defer Channel()))
-            try
-                macroexpand(@__MODULE__, :(@defer Channel()))
-                @test false
-            catch e
-                @test e.error isa AssertionError
-            end
+        @test_throws LoadError macroexpand(@__MODULE__, :(@defer Channel()))
+        try
+            macroexpand(@__MODULE__, :(@defer Channel()))
+            @test false
+        catch e
+            @test e.error isa AssertionError
         end
         close(channel)
     end
