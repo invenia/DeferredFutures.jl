@@ -1,8 +1,7 @@
 using DeferredFutures
-using Compat.Serialization
-using Compat.Distributed
-using Compat.Test
-using Compat
+using Distributed
+using Serialization
+using Test
 
 @testset "DeferredRemoteRefs" begin
     @testset "DeferredFuture Comparison" begin
@@ -290,28 +289,20 @@ using Compat
         fut = macroexpand(@__MODULE__, :(@defer Future()))
         other_future = macroexpand(@__MODULE__, :(@defer Future()))
 
-        if VERSION < v"0.7"
-            ex = macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
-            isa(ex.args[1], AssertionError)
+        @test_throws LoadError macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+        try
+            macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
+            @test false
+        catch e
+            @test e.error isa AssertionError
+        end
 
-             ex = macroexpand(@__MODULE__, :(@defer Channel()))
-            isa(ex.args[1], AssertionError)
-        else
-            @test_throws LoadError macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
-            try
-                macroexpand(@__MODULE__, :(@defer mutable struct Foo end))
-                @test false
-            catch e
-                @test e.error isa AssertionError
-            end
-
-            @test_throws LoadError macroexpand(@__MODULE__, :(@defer Channel()))
-            try
-                macroexpand(@__MODULE__, :(@defer Channel()))
-                @test false
-            catch e
-                @test e.error isa AssertionError
-            end
+        @test_throws LoadError macroexpand(@__MODULE__, :(@defer Channel()))
+        try
+            macroexpand(@__MODULE__, :(@defer Channel()))
+            @test false
+        catch e
+            @test e.error isa AssertionError
         end
         close(channel)
     end
@@ -357,7 +348,7 @@ using Compat
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
-            @everywhere using Compat.Serialization
+            @everywhere using Serialization
 
             df3_string = ""
             try
@@ -442,7 +433,7 @@ using Compat
 
             bottom = addprocs(1)[1]
             @everywhere using DeferredFutures
-            @everywhere using Compat.Serialization
+            @everywhere using Serialization
 
             dc3_string = ""
             try
